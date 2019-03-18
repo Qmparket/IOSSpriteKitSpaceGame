@@ -8,6 +8,7 @@
 
 import SpriteKit
 import GameplayKit
+import CoreMotion
 
 class GameScene: SKScene, SKPhysicsContactDelegate {
 
@@ -27,10 +28,13 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
 	let alienCategory: UInt32 = 0x1 << 1
 	let photonTorpedoCategory: UInt32 = 0x1 << 0
+
+	let motionManager = CMMotionManager()
+	var xAcceleration: CGFloat = 0
     
     override func didMove(to view: SKView) {
 		starfield = SKEmitterNode(fileNamed: "Starfield")
-		starfield.position = CGPoint(x: 0, y: 1472)
+		starfield.position = CGPoint(x: 0, y: 1400)
 		starfield.advanceSimulationTime(10)
 		self.addChild(starfield)
 
@@ -38,8 +42,10 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
 		player = SKSpriteNode(imageNamed: "shuttle")
 
-		player.position = CGPoint(x: 0, y: -frame.size.height / 2 + 50)
-		print(self.frame.size.width)
+		player.position = CGPoint(x: 0, y: -frame.size.height / 2 + 200)
+		// player.position = CGPoint(x: 0, y: 0)
+		print(player.position)
+		print(self.frame.size)
 		print(player.size)
 		self.addChild(player)
 
@@ -47,7 +53,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 		self.physicsWorld.contactDelegate = self
 
 		scoreLabel = SKLabelNode(text: "Score: 0")
-		scoreLabel.position = CGPoint(x: -frame.size.width / 2 + scoreLabel.frame.size.width , y: frame.size.height / 2 - 50)
+		scoreLabel.position = CGPoint(x: -frame.size.width / 2 + scoreLabel.frame.size.width , y: frame.size.height / 2 - 200)
 		scoreLabel.fontName = "AmericanTypewriter-Bold"
 		scoreLabel.fontSize = 36
 		scoreLabel.fontColor = UIColor.white
@@ -57,6 +63,13 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
 		gameTimer = Timer.scheduledTimer(timeInterval: 0.75, target: self, selector: #selector(addAlien), userInfo: nil, repeats: true)
 
+		motionManager.accelerometerUpdateInterval = 0.2
+		motionManager.startAccelerometerUpdates(to: OperationQueue.current!) { (data: CMAccelerometerData?, error: Error?) in
+			if let accelerometerData = data {
+				let acceleration = accelerometerData.acceleration
+				self.xAcceleration = CGFloat(acceleration.x) * 0.75 + self.xAcceleration * 0.25
+			}
+		}
 
     }
 
@@ -125,10 +138,37 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 			firstBody = contact.bodyB
 			secondBody = contact.bodyA
 		}
-
-		if 
+		if ((firstBody.categoryBitMask & photonTorpedoCategory) != 0
+		&& (secondBody.categoryBitMask & alienCategory) != 0) {
+			torpedoDidCollideWithAlien(torpedoNode: firstBody.node as! SKSpriteNode, alienNode: secondBody.node as! SKSpriteNode)
+		}
 	}
 
+	func torpedoDidCollideWithAlien (torpedoNode: SKSpriteNode, alienNode: SKSpriteNode) {
+		guard let explosion = SKEmitterNode(fileNamed: "Explosion") else { return }
+		explosion.position = alienNode.position
+		self.addChild(explosion)
+
+		self.run(SKAction.playSoundFileNamed("explosion.mp3", waitForCompletion: false))
+
+		torpedoNode.removeFromParent()
+		alienNode.removeFromParent()
+
+		self.run(SKAction.wait(forDuration: 2)) {
+			explosion.removeFromParent()
+		}
+
+		score += 5
+	}
+
+	override func didSimulatePhysics() {
+		player.position.x += xAcceleration * 50
+		if (player.position.x < -frame.size.width / 2 - 10) {
+			player.position = CGPoint(x: frame.size.width / 2, y: player.position.y)
+		} else if player.position.x > frame.size.width / 2 + 10 {
+			player.position = CGPoint(x: -frame.size.width / 2, y: player.position.y)
+		}
+	}
     override func update(_ currentTime: TimeInterval) {
         // Called before each frame is rendered
     }
