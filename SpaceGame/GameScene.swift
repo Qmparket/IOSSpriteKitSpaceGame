@@ -15,6 +15,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 	var starfield: SKEmitterNode!
 	var player: SKSpriteNode!
 
+	var viewWidth: CGFloat!
+	var viewHeight: CGFloat!
+
 	var scoreLabel: SKLabelNode!
 	var score: Int = 0 {
 		didSet {
@@ -33,6 +36,18 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 	var xAcceleration: CGFloat = 0
     
     override func didMove(to view: SKView) {
+
+		viewHeight = view.frame.size.height
+		viewWidth = view.frame.size.width
+
+		if (viewHeight <= frame.size.height) {
+			viewHeight = frame.size.height / viewHeight * viewHeight
+		}
+
+		if (viewWidth <= frame.size.width) {
+			viewWidth = frame.size.width / viewWidth * viewWidth
+		}
+
 		starfield = SKEmitterNode(fileNamed: "Starfield")
 		starfield.position = CGPoint(x: 0, y: 1400)
 		starfield.advanceSimulationTime(10)
@@ -42,18 +57,18 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
 		player = SKSpriteNode(imageNamed: "shuttle")
 
-		player.position = CGPoint(x: 0, y: -frame.size.height / 2 + 200)
+		player.position = CGPoint(x: 0, y: -viewHeight / 2 + player.size.height + 10)
 		// player.position = CGPoint(x: 0, y: 0)
-		print(player.position)
-		print(self.frame.size)
-		print(player.size)
+
+		print(viewHeight)
+		print(viewWidth)
 		self.addChild(player)
 
 		self.physicsWorld.gravity = CGVector(dx: 0, dy: 0)
 		self.physicsWorld.contactDelegate = self
 
 		scoreLabel = SKLabelNode(text: "Score: 0")
-		scoreLabel.position = CGPoint(x: -frame.size.width / 2 + scoreLabel.frame.size.width , y: frame.size.height / 2 - 200)
+		scoreLabel.position = CGPoint(x: -viewWidth / 2 + scoreLabel.frame.size.width * 2 + 10 , y: viewHeight / 2 - scoreLabel.frame.size.height - 30)
 		scoreLabel.fontName = "AmericanTypewriter-Bold"
 		scoreLabel.fontSize = 36
 		scoreLabel.fontColor = UIColor.white
@@ -77,10 +92,10 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 		possibleAliens = GKRandomSource.sharedRandom().arrayByShufflingObjects(in: possibleAliens) as! [String]
 		let alien = SKSpriteNode(imageNamed: possibleAliens[0])
 
-		let randomAlienPosition = GKRandomDistribution(lowestValue: Int(-frame.size.width / 2), highestValue: Int(frame.size.width / 2))
+		let randomAlienPosition = GKRandomDistribution(lowestValue: Int(-viewWidth / 2), highestValue: Int(viewWidth / 2))
 		let position = CGFloat(randomAlienPosition.nextInt())
 
-		alien.position = CGPoint(x: position, y: frame.size.height / 2)
+		alien.position = CGPoint(x: position, y: viewHeight / 2)
 		alien.physicsBody = SKPhysicsBody(rectangleOf: alien.size)
 		alien.physicsBody?.isDynamic = true
 
@@ -92,7 +107,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 		let animationDuration: TimeInterval = 3
 
 		var actionArray = [SKAction]()
-		actionArray.append(SKAction.move(to: CGPoint(x: position, y: -frame.size.height / 2 - alien.size.height), duration: animationDuration))
+		actionArray.append(SKAction.move(to: CGPoint(x: position, y: -viewHeight / 2 - alien.size.height), duration: animationDuration))
 		actionArray.append(SKAction.removeFromParent())
 		alien.run(SKAction.sequence(actionArray))
 	}
@@ -121,7 +136,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 		let animationDuration: TimeInterval = 0.3
 
 		var actionArray = [SKAction]()
-		actionArray.append(SKAction.move(to: CGPoint(x: player.position.x, y: frame.size.height / 2 + torpedoNode.size.height), duration: animationDuration))
+		actionArray.append(SKAction.move(to: CGPoint(x: player.position.x, y: viewHeight / 2 + torpedoNode.size.height), duration: animationDuration))
 		actionArray.append(SKAction.removeFromParent())
 		torpedoNode.run(SKAction.sequence(actionArray))
 
@@ -163,10 +178,10 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
 	override func didSimulatePhysics() {
 		player.position.x += xAcceleration * 50
-		if (player.position.x < -frame.size.width / 2 - 10) {
-			player.position = CGPoint(x: frame.size.width / 2, y: player.position.y)
-		} else if player.position.x > frame.size.width / 2 + 10 {
-			player.position = CGPoint(x: -frame.size.width / 2, y: player.position.y)
+		if (player.position.x < -viewWidth / 2 - 10) {
+			player.position = CGPoint(x: viewWidth / 2, y: player.position.y)
+		} else if player.position.x > viewWidth / 2 + 10 {
+			player.position = CGPoint(x: -viewWidth / 2, y: player.position.y)
 		}
 	}
     override func update(_ currentTime: TimeInterval) {
